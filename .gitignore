@@ -1,32 +1,74 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
+# Go编译产物
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-
-# Test binary, built with `go test -c`
+gateway
 *.test
-
-# Code coverage profiles and other test artifacts
 *.out
-coverage.*
-*.coverprofile
-profile.cov
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
 go.work
-go.work.sum
 
-# env file
+# Go模块缓存
+go.sum
+
+# 依赖目录
+vendor/
+
+# 环境变量文件
 .env
+.env.local
+.env.production
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
+
+# IDE配置文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 构建目录
+bin/
+build/
+dist/
+
+# 测试覆盖率文件
+coverage.txt
+coverage.html
+*.cover
+
+# 配置文件中的敏感信息（保留示例文件）
+configs/config.local.yaml
+configs/*.secret.yaml
+
+# Docker相关
+.dockerignore
+
+# Go下载的安装包
+go*.tar.gz
+
+# Redis数据
+dump.rdb
+
+# Prometheus数据
+prometheus_data/
+
+# PID文件
+*.pid

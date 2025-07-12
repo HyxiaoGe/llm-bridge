@@ -1,0 +1,136 @@
+# LLM网关服务配置文件
+
+# 服务器配置
+server:
+  port: 8080
+  host: "0.0.0.0"
+  read_timeout: 60s
+  write_timeout: 60s
+  idle_timeout: 120s
+
+# LLM提供商配置
+providers:
+  # OpenAI配置
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    base_url: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+    org_id: "${OPENAI_ORG_ID}"
+    timeout: 30
+    retries: 3
+    models:
+      - "gpt-3.5-turbo"
+      - "gpt-4"
+      - "gpt-4-turbo"
+
+  # Claude配置
+  claude:
+    api_key: "${CLAUDE_API_KEY}"
+    base_url: "${CLAUDE_BASE_URL:-https://api.anthropic.com}"
+    version: "2023-06-01"
+    timeout: 30
+    retries: 3
+    models:
+      - "claude-3-sonnet-20240229"
+      - "claude-3-opus-20240229"
+      - "claude-3-haiku-20240307"
+
+  # Gemini配置
+  gemini:
+    api_key: "${GEMINI_API_KEY}"
+    base_url: "${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}"
+    project: "${GEMINI_PROJECT}"
+    location: "${GEMINI_LOCATION:-us-central1}"
+    timeout: 30
+    retries: 3
+    models:
+      - "gemini-pro"
+      - "gemini-pro-vision"
+
+  # Azure OpenAI配置
+  azure:
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    deployment: "${AZURE_OPENAI_DEPLOYMENT}"
+    api_version: "${AZURE_OPENAI_API_VERSION:-2023-12-01-preview}"
+    timeout: 30
+    retries: 3
+
+# Redis配置（用于限流和缓存）
+redis:
+  host: "${REDIS_HOST:-localhost}"
+  port: "${REDIS_PORT:-6379}"
+  password: "${REDIS_PASSWORD}"
+  database: "${REDIS_DB:-0}"
+  pool_size: 10
+  max_retries: 3
+
+# 限流配置
+rate_limit:
+  # 全局限流
+  global:
+    requests_per_minute: 1000
+    burst: 100
+
+  # 用户限流
+  user:
+    requests_per_minute: 60
+    burst: 10
+
+  # IP限流
+  ip:
+    requests_per_minute: 100
+    burst: 20
+
+# 安全配置
+security:
+  # AES加密密钥（32字节）
+  encryption_key: "${ENCRYPTION_KEY}"
+  
+  # 是否启用请求加密
+  enable_encryption: false
+  
+  # Nonce过期时间（秒）
+  nonce_expiry: 300
+  
+  # 是否启用防重放攻击
+  enable_replay_protection: true
+
+# 监控配置
+monitoring:
+  # Prometheus指标
+  prometheus:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+  
+  # 日志配置
+  logging:
+    level: "info"
+    format: "json"
+    output: "stdout"
+
+# 负载均衡配置
+load_balancer:
+  # 策略: round_robin, weighted, least_connections
+  strategy: "round_robin"
+  
+  # 健康检查间隔（秒）
+  health_check_interval: 30
+  
+  # 提供商权重配置
+  weights:
+    openai: 1
+    claude: 1
+    gemini: 1
+    azure: 1
+
+# 缓存配置
+cache:
+  # 是否启用响应缓存
+  enabled: false
+  
+  # 缓存TTL（秒）
+  ttl: 3600
+  
+  # 缓存键前缀
+  key_prefix: "llm_cache:"
