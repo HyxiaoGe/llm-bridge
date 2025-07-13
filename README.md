@@ -73,6 +73,39 @@ curl -X POST https://your-app.onrender.com/v1/chat/completions \
   }'
 ```
 
+### 负载均衡使用示例
+
+系统支持自动负载均衡，当不指定`provider`参数时，会自动在多个提供商间轮询选择：
+
+```bash
+# 自动负载均衡 - 系统自动选择最优提供商
+curl -X POST https://your-app.onrender.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [
+      {"role": "user", "content": "测试负载均衡功能"}
+    ]
+  }'
+
+# 指定提供商 - 强制使用特定提供商
+curl -X POST https://your-app.onrender.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "provider": "openai",
+    "messages": [
+      {"role": "user", "content": "使用指定的OpenAI提供商"}
+    ]
+  }'
+```
+
+**负载均衡特性**:
+- 🔄 轮询算法: 自动在健康提供商间轮询
+- 🛡️ 故障转移: 自动跳过不健康的提供商
+- 📊 健康检查: 实时监控提供商状态
+- ⚡ 高可用: 单点故障不影响整体服务
+
 ### 支持的模型
 
 | 提供商 | 模型列表 |
