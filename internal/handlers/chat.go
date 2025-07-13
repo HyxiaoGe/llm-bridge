@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/heyanxiao/llm-bridge/internal/providers"
+	"github.com/heyanxiao/llm-bridge/internal/stats"
 	"github.com/heyanxiao/llm-bridge/pkg/types"
 )
 
@@ -26,6 +27,9 @@ func NewChatHandler(factory *providers.ProviderFactory, balancer providers.LoadB
 
 // ChatCompletion 处理聊天补全请求
 func (h *ChatHandler) ChatCompletion(c *fiber.Ctx) error {
+	// 记录请求开始时间用于统计
+	startTime := time.Now()
+
 	// 解析请求体
 	var req types.UnifiedRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -135,6 +139,15 @@ func (h *ChatHandler) ChatCompletion(c *fiber.Ctx) error {
 
 	// 更新提供商健康状态为正常
 	h.loadBalancer.UpdateHealth(provider.GetProviderName(), true)
+
+	// 记录统计数据到Redis
+	responseTime := time.Since(startTime)
+	tokens := unifiedResp.Usage.TotalTokens
+	
+	// 记录统计
+	if redisMetrics := stats.GetRedisMetrics(); redisMetrics != nil {
+		redisMetrics.IncrementRequest(provider.GetProviderName(), responseTime, tokens)
+	}
 
 	// 返回统一格式的响应
 	return c.JSON(unifiedResp)

@@ -10,9 +10,17 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/heyanxiao/llm-bridge/internal/handlers"
 	"github.com/heyanxiao/llm-bridge/internal/providers"
+	"github.com/heyanxiao/llm-bridge/internal/stats"
 )
 
 func main() {
+	// 初始化Redis统计服务
+	if err := stats.InitRedisMetrics(); err != nil {
+		log.Printf("Redis统计服务初始化失败 (将使用内存统计): %v", err)
+	} else {
+		log.Println("Redis统计服务初始化成功")
+	}
+
 	// 创建Fiber应用实例
 	app := fiber.New(fiber.Config{
 		ServerHeader: "LLM-Bridge-Gateway",
@@ -71,6 +79,21 @@ func setupRoutes(app *fiber.App, factory *providers.ProviderFactory, balancer pr
 	// 创建处理器实例
 	chatHandler := handlers.NewChatHandler(factory, balancer)
 	healthHandler := handlers.NewHealthHandler()
+	adminHandler := handlers.NewAdminHandler(factory, balancer)
+
+	// 静态文件服务 - 监控面板
+	app.Static("/static", "./static")
+	
+	// 管理面板路由
+	admin := app.Group("/admin")
+	admin.Get("/", adminHandler.Dashboard)
+	
+	// 管理API路由
+	adminAPI := admin.Group("/api")
+	adminAPI.Get("/providers", adminHandler.GetProvidersStatus)
+	adminAPI.Post("/test", adminHandler.TestProvider)
+	adminAPI.Get("/stats", adminHandler.GetSystemStats)
+	adminAPI.Get("/providers/:provider/models", adminHandler.GetProviderModels)
 
 	// API v1 路由组
 	v1 := app.Group("/v1")
@@ -92,9 +115,11 @@ func setupRoutes(app *fiber.App, factory *providers.ProviderFactory, balancer pr
 			"version":     "1.0.0",
 			"description": "统一的LLM API网关，支持多个提供商",
 			"endpoints": fiber.Map{
-				"chat":   "/v1/chat/completions",
-				"models": "/v1/models",
-				"health": "/health",
+				"chat":     "/v1/chat/completions",
+				"models":   "/v1/models",
+				"health":   "/health",
+				"admin":    "/admin",
+				"monitor":  "/admin",
 			},
 		})
 	})

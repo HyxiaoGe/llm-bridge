@@ -1,76 +1,96 @@
-version: '3.8'
-
 services:
-  # LLM网关服务
   llm-gateway:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: llm-bridge-gateway
+    restart: unless-stopped
     ports:
       - "8080:8080"
-      - "9090:9090"  # Prometheus指标端口
     environment:
+      # 服务器配置
       - PORT=8080
+      - HOST=0.0.0.0
+      
+      # Redis配置
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - LOG_LEVEL=info
-    env_file:
-      - .env
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      
+      # LLM提供商API密钥 - 从.env文件读取
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
+      - GEMINI_PROJECT=${GEMINI_PROJECT:-}
+      - GEMINI_LOCATION=${GEMINI_LOCATION:-}
+      
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - QWEN_BASE_URL=${QWEN_BASE_URL:-https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation}
+      
+      - MOONSHOT_API_KEY=${MOONSHOT_API_KEY}
+      - MOONSHOT_BASE_URL=${MOONSHOT_BASE_URL:-https://api.moonshot.cn/v1}
+    
+    volumes:
+      # 可选：挂载日志目录
+      - ./logs:/app/logs
+    
+    networks:
+      - llm-bridge-network
+    
     depends_on:
       - redis
-    volumes:
-      - ./configs:/app/configs:ro
-    networks:
-      - llm-network
-    restart: unless-stopped
+    
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    
+    labels:
+      - "app=llm-bridge"
+      - "service=gateway"
+      - "version=1.0.0"
 
-  # Redis服务（用于限流和缓存）
+  # Redis服务 - 用于统计、缓存、token计量等
   redis:
     image: redis:7-alpine
+    container_name: llm-bridge-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    command: redis-server --requirepass ${REDIS_PASSWORD:-""}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: >
+      sh -c "
+        if [ -n \"$REDIS_PASSWORD\" ]; then
+          redis-server --requirepass \"$REDIS_PASSWORD\"
+        else
+          redis-server
+        fi
+      "
     volumes:
       - redis_data:/data
     networks:
-      - llm-network
-    restart: unless-stopped
+      - llm-bridge-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Prometheus监控（可选）
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    networks:
-      - llm-network
-    restart: unless-stopped
+networks:
+  llm-bridge-network:
+    driver: bridge
+    name: llm-bridge-network
 
 volumes:
+  logs:
+    driver: local
   redis_data:
-  prometheus_data:
-
-networks:
-  llm-network:
-    driver: bridge
+    driver: local

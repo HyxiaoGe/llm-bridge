@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM网关监控面板</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-network-wired"></i> LLM网关监控面板</h1>
+                <div class="header-info">
+                    <span id="last-update">最后更新: --</span>
+                    <button id="refresh-btn" class="btn btn-primary">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 概览仪表板 -->
+        <section class="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-providers">0</div>
+                        <div class="stat-label">注册提供商</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon healthy">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="healthy-providers">0</div>
+                        <div class="stat-label">健康提供商</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-requests">0</div>
+                        <div class="stat-label">总请求数</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="avg-response-time">0ms</div>
+                        <div class="stat-label">平均响应时间</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 提供商状态 -->
+        <section class="providers-section">
+            <h2><i class="fas fa-cloud"></i> LLM提供商状态</h2>
+            <div class="providers-grid" id="providers-grid">
+                <!-- 动态生成提供商卡片 -->
+            </div>
+        </section>
+
+        <!-- 系统状态 -->
+        <section class="system-section">
+            <h2><i class="fas fa-cogs"></i> 系统状态</h2>
+            <div class="system-grid">
+                <div class="system-card">
+                    <h3>服务信息</h3>
+                    <div class="system-info">
+                        <div class="info-item">
+                            <span class="info-label">服务版本:</span>
+                            <span class="info-value" id="service-version">v1.0.0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">运行时间:</span>
+                            <span class="info-value" id="uptime">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">端口:</span>
+                            <span class="info-value" id="service-port">8080</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="system-card">
+                    <h3>实时指标</h3>
+                    <div class="metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">活跃连接:</span>
+                            <span class="metric-value" id="active-connections">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">内存使用:</span>
+                            <span class="metric-value" id="memory-usage">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">CPU使用:</span>
+                            <span class="metric-value" id="cpu-usage">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 测试工具 -->
+        <section class="test-section">
+            <h2><i class="fas fa-flask"></i> 测试工具</h2>
+            <div class="test-panel">
+                <div class="test-form">
+                    <div class="form-group">
+                        <label for="test-provider">选择提供商:</label>
+                        <select id="test-provider" class="form-control">
+                            <option value="">自动选择</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="test-model">模型:</label>
+                        <input type="text" id="test-model" class="form-control" placeholder="gpt-3.5-turbo">
+                    </div>
+                    <div class="form-group">
+                        <label for="test-message">测试消息:</label>
+                        <textarea id="test-message" class="form-control" rows="3" placeholder="输入测试消息...">你好，这是一个测试消息</textarea>
+                    </div>
+                    <button id="test-btn" class="btn btn-success">
+                        <i class="fas fa-paper-plane"></i> 发送测试
+                    </button>
+                </div>
+                <div class="test-result">
+                    <h4>测试结果:</h4>
+                    <pre id="test-output">等待测试...</pre>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modal-title">提供商详情</h3>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">加载中...</div>
+    </div>
+
+    <script src="/static/js/monitor.js"></script>
+</body>
+</html>

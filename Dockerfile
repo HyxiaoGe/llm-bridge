@@ -31,9 +31,9 @@ RUN adduser -D -s /bin/sh appuser
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件和配置
+# 从构建阶段复制二进制文件和静态文件
 COPY --from=builder /app/gateway .
-COPY --from=builder /app/configs ./configs
+COPY --from=builder /app/static ./static
 
 # 更改文件所有者
 RUN chown -R appuser:appuser /app
