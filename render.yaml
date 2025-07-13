@@ -1,0 +1,84 @@
+services:
+  # LLM网关主服务
+  - type: web
+    name: llm-bridge-gateway
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon  # 美国西海岸，访问OpenAI最优
+    healthCheckPath: /health
+    
+    # 环境变量（需要在Render Dashboard中配置）
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: HOST
+        value: 0.0.0.0
+        
+      # Redis配置（使用Render内置Redis）
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: llm-bridge-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: llm-bridge-redis
+          property: port
+      - key: REDIS_PASSWORD
+        fromService:
+          type: redis
+          name: llm-bridge-redis
+          property: password
+          
+      # 限流配置
+      - key: RATE_LIMIT_ENABLED
+        value: true
+      - key: RATE_LIMIT_WINDOW_1M
+        value: 60
+      - key: RATE_LIMIT_WINDOW_5M
+        value: 300
+      - key: RATE_LIMIT_WINDOW_1H
+        value: 2000
+      - key: RATE_LIMIT_CHAT_1M
+        value: 30
+      - key: RATE_LIMIT_CHAT_5M
+        value: 150
+      - key: RATE_LIMIT_TEST_1M
+        value: 20
+        
+      # LLM API密钥（需要在Dashboard中设置为secret）
+      - key: OPENAI_API_KEY
+        sync: false  # 标记为敏感信息
+      - key: OPENAI_BASE_URL
+        value: https://api.openai.com/v1
+        
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta
+        
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com/v1
+        
+      - key: DASHSCOPE_API_KEY
+        sync: false
+      - key: QWEN_BASE_URL
+        value: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation
+        
+      - key: MOONSHOT_API_KEY
+        sync: false
+      - key: MOONSHOT_BASE_URL
+        value: https://api.moonshot.cn/v1
+
+  # Redis服务
+  - type: redis
+    name: llm-bridge-redis
+    plan: free  # 25MB免费Redis
+    maxmemoryPolicy: allkeys-lru
+    
+    # Redis配置
+    ipAllowList: []  # 空列表表示允许所有IP
