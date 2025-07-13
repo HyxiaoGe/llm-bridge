@@ -56,6 +56,18 @@ body {
     font-size: 0.9rem;
 }
 
+.refresh-indicator {
+    display: none;
+    color: #667eea;
+    font-size: 0.9rem;
+    margin: 0 12px;
+    opacity: 0.8;
+}
+
+.refresh-indicator i {
+    margin-right: 4px;
+}
+
 /* 按钮样式 */
 .btn {
     padding: 10px 20px;

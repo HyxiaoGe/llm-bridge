@@ -10,14 +10,14 @@ class LLMMonitor {
 
     init() {
         this.bindEvents();
-        this.loadData();
+        this.loadData(true); // 初次加载，显示全屏加载器
         this.startAutoRefresh();
     }
 
     bindEvents() {
         // 刷新按钮
         document.getElementById('refresh-btn').addEventListener('click', () => {
-            this.loadData();
+            this.loadData(true); // 手动刷新，显示全屏加载器
         });
         
         // 监听表单变化，暂停自动刷新
@@ -67,13 +67,19 @@ class LLMMonitor {
         });
     }
 
-    async loadData() {
+    async loadData(isInitialLoad = false) {
         // 如果用户正在操作表单，跳过这次刷新
         if (this.userIsInteracting) {
             return;
         }
         
-        this.showLoading();
+        // 只在初次加载时显示全屏加载器，自动刷新时显示小提示
+        if (isInitialLoad) {
+            this.showLoading();
+        } else {
+            this.showRefreshIndicator();
+        }
+        
         try {
             // 保存当前表单状态
             this.saveFormState();
@@ -92,7 +98,11 @@ class LLMMonitor {
             console.error('加载数据失败:', error);
             this.showError('数据加载失败: ' + error.message);
         } finally {
-            this.hideLoading();
+            if (isInitialLoad) {
+                this.hideLoading();
+            } else {
+                this.hideRefreshIndicator();
+            }
         }
     }
 
@@ -613,6 +623,22 @@ ${JSON.stringify(result.response, null, 2)}`;
 
     hideLoading() {
         document.getElementById('loading').style.display = 'none';
+    }
+
+    showRefreshIndicator() {
+        // 显示小的刷新指示器（在头部区域）
+        const indicator = document.getElementById('refresh-indicator');
+        if (indicator) {
+            indicator.style.display = 'inline-block';
+        }
+    }
+
+    hideRefreshIndicator() {
+        // 隐藏刷新指示器
+        const indicator = document.getElementById('refresh-indicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
     }
 
     showError(message) {
