@@ -94,6 +94,7 @@ func setupRoutes(app *fiber.App, factory *providers.ProviderFactory, balancer pr
 	adminAPI.Post("/test", adminHandler.TestProvider)
 	adminAPI.Get("/stats", adminHandler.GetSystemStats)
 	adminAPI.Get("/providers/:provider/models", adminHandler.GetProviderModels)
+	adminAPI.Get("/models-config", adminHandler.GetAllModelsConfig)
 
 	// API v1 路由组
 	v1 := app.Group("/v1")

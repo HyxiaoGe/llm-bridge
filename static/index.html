@@ -81,18 +81,18 @@
             <div class="system-grid">
                 <div class="system-card">
                     <h3>服务信息</h3>
-                    <div class="system-info">
-                        <div class="info-item">
-                            <span class="info-label">服务版本:</span>
-                            <span class="info-value" id="service-version">v1.0.0</span>
+                    <div class="metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">服务版本:</span>
+                            <span class="metric-value" id="service-version">v1.0.0</span>
                         </div>
-                        <div class="info-item">
-                            <span class="info-label">运行时间:</span>
-                            <span class="info-value" id="uptime">--</span>
+                        <div class="metric-item">
+                            <span class="metric-label">运行时间:</span>
+                            <span class="metric-value" id="uptime">--</span>
                         </div>
-                        <div class="info-item">
-                            <span class="info-label">端口:</span>
-                            <span class="info-value" id="service-port">8080</span>
+                        <div class="metric-item">
+                            <span class="metric-label">端口:</span>
+                            <span class="metric-value" id="service-port">8080</span>
                         </div>
                     </div>
                 </div>
@@ -123,17 +123,19 @@
             <div class="test-panel">
                 <div class="test-form">
                     <div class="form-group">
-                        <label for="test-provider">选择提供商:</label>
+                        <label for="test-provider"><i class="fas fa-server"></i>选择提供商:</label>
                         <select id="test-provider" class="form-control">
                             <option value="">自动选择</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="test-model">模型:</label>
-                        <input type="text" id="test-model" class="form-control" placeholder="gpt-3.5-turbo">
+                        <label for="test-model"><i class="fas fa-brain"></i>模型:</label>
+                        <select id="test-model" class="form-control">
+                            <option value="">请先选择提供商</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label for="test-message">测试消息:</label>
+                        <label for="test-message"><i class="fas fa-comment"></i>测试消息:</label>
                         <textarea id="test-message" class="form-control" rows="3" placeholder="输入测试消息...">你好，这是一个测试消息</textarea>
                     </div>
                     <button id="test-btn" class="btn btn-success">

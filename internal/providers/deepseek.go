@@ -90,7 +90,7 @@ func (p *DeepSeekProvider) Transform(req *types.UnifiedRequest) ([]byte, error) 
 	// 如果没有指定模型，使用默认模型
 	model := req.Model
 	if model == "" || model == "deepseek" {
-		model = "deepseek-chat"
+		model = GetDefaultModel("deepseek")
 	}
 	
 	// 构建DeepSeek请求结构

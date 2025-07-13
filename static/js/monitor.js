@@ -2,6 +2,7 @@
 class LLMMonitor {
     constructor() {
         this.providers = [];
+        this.modelsConfig = {}; // 存储模型配置
         this.refreshInterval = 30000; // 30秒
         this.refreshTimer = null;
         this.init();
@@ -18,6 +19,9 @@ class LLMMonitor {
         document.getElementById('refresh-btn').addEventListener('click', () => {
             this.loadData();
         });
+        
+        // 监听表单变化，暂停自动刷新
+        this.bindFormChangeEvents();
 
         // 测试按钮
         document.getElementById('test-btn').addEventListener('click', () => {
@@ -43,19 +47,124 @@ class LLMMonitor {
         });
     }
 
+    bindFormChangeEvents() {
+        const formElements = ['test-provider', 'test-model', 'test-message'];
+        this.userIsInteracting = false;
+        
+        formElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('focus', () => {
+                    this.userIsInteracting = true;
+                });
+                
+                element.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        this.userIsInteracting = false;
+                    }, 1000); // 1秒后恢复自动刷新
+                });
+            }
+        });
+    }
+
     async loadData() {
+        // 如果用户正在操作表单，跳过这次刷新
+        if (this.userIsInteracting) {
+            return;
+        }
+        
         this.showLoading();
         try {
+            // 保存当前表单状态
+            this.saveFormState();
+            
             await Promise.all([
+                this.loadModelsConfig(),
                 this.loadProviders(),
                 this.loadSystemStats()
             ]);
+            
+            // 恢复表单状态
+            this.restoreFormState();
+            
             this.updateLastRefreshTime();
         } catch (error) {
             console.error('加载数据失败:', error);
             this.showError('数据加载失败: ' + error.message);
         } finally {
             this.hideLoading();
+        }
+    }
+
+    saveFormState() {
+        this.formState = {
+            provider: document.getElementById('test-provider').value,
+            model: document.getElementById('test-model').value,
+            message: document.getElementById('test-message').value
+        };
+    }
+
+    restoreFormState() {
+        if (this.formState) {
+            // 恢复提供商选择
+            const providerSelect = document.getElementById('test-provider');
+            if (providerSelect.value !== this.formState.provider) {
+                providerSelect.value = this.formState.provider;
+                this.updateModelOptions(this.formState.provider);
+            }
+            
+            // 恢复模型选择
+            setTimeout(() => {
+                const modelSelect = document.getElementById('test-model');
+                if (modelSelect.value !== this.formState.model) {
+                    modelSelect.value = this.formState.model;
+                }
+            }, 100);
+            
+            // 恢复消息内容
+            const messageInput = document.getElementById('test-message');
+            if (messageInput.value !== this.formState.message) {
+                messageInput.value = this.formState.message;
+            }
+        }
+    }
+
+    async loadModelsConfig() {
+        try {
+            const response = await fetch('/admin/api/models-config');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            
+            if (data.success) {
+                this.modelsConfig = data.modelsConfig;
+            }
+        } catch (error) {
+            console.error('加载模型配置失败:', error);
+            // 降级到默认配置
+            this.modelsConfig = {
+                'openai': {
+                    models: ['gpt-3.5-turbo', 'gpt-4o-2024-08-06', 'gpt-4.1-2025-04-14'],
+                    defaultModel: 'gpt-3.5-turbo'
+                },
+                'gemini': {
+                    models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+                    defaultModel: 'gemini-2.5-flash'
+                },
+                'deepseek': {
+                    models: ['deepseek-reasoner', 'deepseek-chat'],
+                    defaultModel: 'deepseek-chat'
+                },
+                'qwen': {
+                    models: ['qwen-max', 'qwen-plus', 'qwq-plus'],
+                    defaultModel: 'qwen-plus'
+                },
+                'moonshot': {
+                    models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k', 'kimi-k2-0711-preview'],
+                    defaultModel: 'moonshot-v1-8k'
+                }
+            };
         }
     }
 
@@ -68,7 +177,17 @@ class LLMMonitor {
             const data = await response.json();
             
             if (data.success) {
-                this.providers = data.providers;
+                // 按请求次数降序排序提供商
+                this.providers = data.providers.sort((a, b) => {
+                    const requestsA = a.requests || 0;
+                    const requestsB = b.requests || 0;
+                    if (requestsA !== requestsB) {
+                        return requestsB - requestsA; // 请求次数降序
+                    }
+                    // 请求次数相同时，按名称字母顺序
+                    return a.name.localeCompare(b.name);
+                });
+                
                 this.updateProvidersDisplay();
                 this.updateProviderSelect();
                 this.updateProviderStats();
@@ -115,11 +234,19 @@ class LLMMonitor {
         card.className = `provider-card ${provider.status}`;
         
         const modelsCount = Array.isArray(provider.models) ? provider.models.length : 0;
-        const lastTest = provider.lastTest ? new Date(provider.lastTest).toLocaleString() : '未测试';
+        const requests = provider.requests || 0;
+        
+        // 添加使用频率标识
+        let usageIndicator = '';
+        if (requests > 10) {
+            usageIndicator = '<span class="usage-indicator high">🔥 热门</span>';
+        } else if (requests > 0) {
+            usageIndicator = '<span class="usage-indicator active">✨ 活跃</span>';
+        }
         
         card.innerHTML = `
             <div class="provider-header">
-                <div class="provider-name">${provider.name.toUpperCase()}</div>
+                <div class="provider-name">${provider.name.toUpperCase()} ${usageIndicator}</div>
                 <span class="provider-status status-${provider.status}">${this.getStatusText(provider.status)}</span>
             </div>
             <div class="provider-summary">
@@ -171,6 +298,9 @@ class LLMMonitor {
             option.textContent = provider.name.toUpperCase();
             select.appendChild(option);
         });
+        
+        // 重置模型选择
+        this.updateModelOptions('');
     }
 
     updateProviderStats() {
@@ -202,31 +332,56 @@ class LLMMonitor {
     }
 
     updateModelOptions(providerName) {
-        const modelInput = document.getElementById('test-model');
+        const modelSelect = document.getElementById('test-model');
         
         if (!providerName) {
-            modelInput.placeholder = 'gpt-3.5-turbo';
-            modelInput.value = '';
+            modelSelect.innerHTML = '<option value="">请先选择提供商</option>';
             return;
         }
 
-        // 根据提供商设置默认模型
-        const defaultModels = {
-            'openai': 'gpt-3.5-turbo',
-            'gemini': 'gemini-pro',
-            'deepseek': 'deepseek-chat',
-            'qwen': 'qwen-turbo',
-            'moonshot': 'moonshot-v1-8k'
-        };
-
-        const defaultModel = defaultModels[providerName] || '';
-        modelInput.placeholder = defaultModel;
-        modelInput.value = defaultModel;
+        // 从动态配置获取模型信息
+        const providerConfig = this.modelsConfig[providerName];
+        if (providerConfig && providerConfig.models && providerConfig.models.length > 0) {
+            const defaultModel = providerConfig.defaultModel || providerConfig.models[0];
+            
+            // 清空并重新填充选项
+            modelSelect.innerHTML = '';
+            
+            // 添加模型选项
+            providerConfig.models.forEach((model, index) => {
+                const option = document.createElement('option');
+                option.value = model;
+                
+                // 为默认模型添加标识
+                if (model === defaultModel) {
+                    option.textContent = `${model} (推荐)`;
+                    option.selected = true;
+                } else {
+                    option.textContent = model;
+                }
+                
+                modelSelect.appendChild(option);
+            });
+            
+            // 添加样式提示
+            if (providerConfig.models.length > 1) {
+                modelSelect.title = `${providerName.toUpperCase()} 支持 ${providerConfig.models.length} 个模型`;
+            }
+        } else {
+            // 降级处理
+            modelSelect.innerHTML = '<option value="">该提供商暂无可用模型</option>';
+        }
     }
 
     async testProvider() {
         const provider = document.getElementById('test-provider').value;
         const model = document.getElementById('test-model').value;
+        
+        // 验证模型是否已选择
+        if (!model.trim()) {
+            this.showError('请选择一个模型');
+            return;
+        }
         const message = document.getElementById('test-message').value;
 
         if (!message.trim()) {
@@ -280,13 +435,17 @@ ${JSON.stringify(result.response, null, 2)}`;
     }
 
     async testSpecificProvider(providerName) {
-        // 设置测试表单并执行测试
+        // 设置测试表单
         document.getElementById('test-provider').value = providerName;
         this.updateModelOptions(providerName);
-        await this.testProvider();
         
-        // 滚动到测试结果
+        // 立即滚动到测试工具区域
         document.querySelector('.test-section').scrollIntoView({ behavior: 'smooth' });
+        
+        // 稍作延迟后执行测试，确保滚动完成
+        setTimeout(() => {
+            this.testProvider();
+        }, 300);
     }
 
     showProviderDetails(providerName) {

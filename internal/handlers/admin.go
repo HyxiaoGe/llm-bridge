@@ -276,6 +276,24 @@ func (h *AdminHandler) GetProviderModels(c *fiber.Ctx) error {
 		"success": true,
 		"provider": providerName,
 		"models":   models,
+		"defaultModel": getDefaultModelForProvider(providerName),
+	})
+}
+
+// GetAllModelsConfig 获取所有提供商的模型配置
+func (h *AdminHandler) GetAllModelsConfig(c *fiber.Ctx) error {
+	modelsConfig := make(map[string]interface{})
+	
+	for provider, config := range providers.SupportedModels {
+		modelsConfig[provider] = fiber.Map{
+			"models": config.Models,
+			"defaultModel": config.DefaultModel,
+		}
+	}
+	
+	return c.JSON(fiber.Map{
+		"success": true,
+		"modelsConfig": modelsConfig,
 	})
 }
 
@@ -334,38 +352,12 @@ func getBaseProvider(provider providers.ProviderAdapter) *providers.BaseProvider
 
 // 获取提供商支持的模型
 func getProviderModels(providerName string) []string {
-	switch providerName {
-	case "openai":
-		return []string{"gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"}
-	case "gemini":
-		return []string{"gemini-pro", "gemini-pro-vision"}
-	case "deepseek":
-		return []string{"deepseek-chat", "deepseek-coder"}
-	case "qwen":
-		return []string{"qwen-turbo", "qwen-plus", "qwen-max"}
-	case "moonshot":
-		return []string{"moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"}
-	default:
-		return []string{}
-	}
+	return providers.GetProviderModels(providerName)
 }
 
 // 获取提供商的默认模型
 func getDefaultModelForProvider(providerName string) string {
-	switch providerName {
-	case "openai":
-		return "gpt-3.5-turbo"
-	case "gemini":
-		return "gemini-pro"
-	case "deepseek":
-		return "deepseek-chat"
-	case "qwen":
-		return "qwen-turbo"
-	case "moonshot":
-		return "moonshot-v1-8k"
-	default:
-		return ""
-	}
+	return providers.GetDefaultModel(providerName)
 }
 
 // 格式化字节数

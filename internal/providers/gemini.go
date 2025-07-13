@@ -126,12 +126,32 @@ func (p *GeminiProvider) Transform(req *types.UnifiedRequest) ([]byte, error) {
 
 // CallAPI 调用Gemini API
 func (p *GeminiProvider) CallAPI(ctx context.Context, data []byte) (*http.Response, error) {
+	// 从请求数据中解析模型名称
+	var reqData map[string]interface{}
+	if err := json.Unmarshal(data, &reqData); err != nil {
+		return nil, fmt.Errorf("解析请求数据失败: %w", err)
+	}
+	
+	// 获取模型名称，如果没有则使用默认值
+	model := GetDefaultModel("gemini")
+	if modelData, exists := reqData["model"]; exists {
+		model = modelData.(string)
+	}
+	
+	// 删除model从请求体中，避免Gemini API错误
+	delete(reqData, "model")
+	
+	// 重新序列化数据
+	cleanData, err := json.Marshal(reqData)
+	if err != nil {
+		return nil, fmt.Errorf("重新序列化请求数据失败: %w", err)
+	}
+	
 	// Gemini API URL格式: /v1beta/models/{model}:generateContent
-	model := "gemini-2.0-flash-exp" // 使用可用的模型
 	url := fmt.Sprintf("%s/models/%s:generateContent", p.BaseURL, model)
 	
 	// 创建HTTP请求
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(data))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(cleanData))
 	if err != nil {
 		return nil, fmt.Errorf("创建HTTP请求失败: %w", err)
 	}
@@ -187,7 +207,7 @@ func (p *GeminiProvider) ParseResponse(resp *http.Response) (*types.UnifiedRespo
 		ID:      fmt.Sprintf("gemini-%d", time.Now().Unix()),
 		Object:  "chat.completion",
 		Created: time.Now().Unix(),
-		Model:   "gemini-pro",
+		Model:   "gemini-pro", // 暂时返回固定值，待后续优化
 	}
 	
 	// 解析candidates
