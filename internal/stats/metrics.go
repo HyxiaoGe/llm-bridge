@@ -63,6 +63,14 @@ func GetRedisMetrics() *RedisMetrics {
 	return globalMetrics
 }
 
+// GetRedisClient 获取Redis客户端
+func GetRedisClient() *redis.Client {
+	if globalMetrics != nil {
+		return globalMetrics.client
+	}
+	return nil
+}
+
 // IncrementRequest 增加请求计数并记录响应时间
 func (m *RedisMetrics) IncrementRequest(provider string, responseTime time.Duration, tokens int) {
 	if m.client == nil {

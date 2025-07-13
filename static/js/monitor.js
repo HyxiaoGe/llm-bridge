@@ -329,6 +329,28 @@ class LLMMonitor {
             stats.metrics.memory_usage || '--';
         document.getElementById('cpu-usage').textContent = 
             stats.metrics.cpu_usage || '--';
+            
+        // 更新限流状态
+        if (stats.rate_limit) {
+            const rateLimitStatus = document.getElementById('rate-limit-status');
+            const rateLimit1m = document.getElementById('rate-limit-1m');
+            const rateLimit5m = document.getElementById('rate-limit-5m');
+            
+            if (stats.rate_limit.enabled) {
+                rateLimitStatus.textContent = '已启用';
+                rateLimitStatus.style.color = '#48bb78';
+                
+                if (stats.rate_limit.config) {
+                    rateLimit1m.textContent = stats.rate_limit.config.window_1m + ' 次/分钟';
+                    rateLimit5m.textContent = stats.rate_limit.config.window_5m + ' 次/5分钟';
+                }
+            } else {
+                rateLimitStatus.textContent = '未启用';
+                rateLimitStatus.style.color = '#f56565';
+                rateLimit1m.textContent = '--';
+                rateLimit5m.textContent = '--';
+            }
+        }
     }
 
     updateModelOptions(providerName) {

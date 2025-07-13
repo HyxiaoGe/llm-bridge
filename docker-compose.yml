@@ -34,6 +34,15 @@ services:
       
       - MOONSHOT_API_KEY=${MOONSHOT_API_KEY}
       - MOONSHOT_BASE_URL=${MOONSHOT_BASE_URL:-https://api.moonshot.cn/v1}
+      
+      # 限流配置
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-false}
+      - RATE_LIMIT_WINDOW_1M=${RATE_LIMIT_WINDOW_1M:-60}
+      - RATE_LIMIT_WINDOW_5M=${RATE_LIMIT_WINDOW_5M:-240}
+      - RATE_LIMIT_WINDOW_1H=${RATE_LIMIT_WINDOW_1H:-1000}
+      - RATE_LIMIT_CHAT_1M=${RATE_LIMIT_CHAT_1M:-30}
+      - RATE_LIMIT_CHAT_5M=${RATE_LIMIT_CHAT_5M:-120}
+      - RATE_LIMIT_TEST_1M=${RATE_LIMIT_TEST_1M:-10}
     
     volumes:
       # 可选：挂载日志目录

@@ -3,12 +3,14 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/heyanxiao/llm-bridge/internal/handlers"
+	"github.com/heyanxiao/llm-bridge/internal/middleware"
 	"github.com/heyanxiao/llm-bridge/internal/providers"
 	"github.com/heyanxiao/llm-bridge/internal/stats"
 )
@@ -28,8 +30,15 @@ func main() {
 		ErrorHandler: customErrorHandler,
 	})
 
+	// 初始化限流器
+	var rateLimiter *middleware.RateLimiter
+	if redisClient := stats.GetRedisClient(); redisClient != nil {
+		rateLimiter = middleware.NewRateLimiter(redisClient)
+		log.Println("限流服务初始化成功")
+	}
+
 	// 添加中间件
-	setupMiddleware(app)
+	setupMiddleware(app, rateLimiter)
 
 	// 初始化提供商工厂和负载均衡器
 	providerFactory := providers.NewProviderFactory()
@@ -39,7 +48,7 @@ func main() {
 	registerProviders(providerFactory)
 
 	// 设置路由
-	setupRoutes(app, providerFactory, loadBalancer)
+	setupRoutes(app, providerFactory, loadBalancer, rateLimiter)
 
 	// 获取端口配置
 	port := os.Getenv("PORT")
@@ -55,7 +64,7 @@ func main() {
 }
 
 // setupMiddleware 设置中间件
-func setupMiddleware(app *fiber.App) {
+func setupMiddleware(app *fiber.App, rateLimiter *middleware.RateLimiter) {
 	// 恢复中间件 - 捕获panic
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
@@ -72,14 +81,24 @@ func setupMiddleware(app *fiber.App) {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
+	
+	// 限流中间件
+	if rateLimiter != nil {
+		app.Use(rateLimiter.Middleware())
+	}
 }
 
 // setupRoutes 设置路由
-func setupRoutes(app *fiber.App, factory *providers.ProviderFactory, balancer providers.LoadBalancer) {
+func setupRoutes(app *fiber.App, factory *providers.ProviderFactory, balancer providers.LoadBalancer, rateLimiter *middleware.RateLimiter) {
 	// 创建处理器实例
 	chatHandler := handlers.NewChatHandler(factory, balancer)
 	healthHandler := handlers.NewHealthHandler()
 	adminHandler := handlers.NewAdminHandler(factory, balancer)
+	
+	// 设置限流器
+	if rateLimiter != nil {
+		adminHandler.SetRateLimiter(rateLimiter)
+	}
 
 	// 静态文件服务 - 监控面板
 	app.Static("/static", "./static")
@@ -95,6 +114,14 @@ func setupRoutes(app *fiber.App, factory *providers.ProviderFactory, balancer pr
 	adminAPI.Get("/stats", adminHandler.GetSystemStats)
 	adminAPI.Get("/providers/:provider/models", adminHandler.GetProviderModels)
 	adminAPI.Get("/models-config", adminHandler.GetAllModelsConfig)
+	
+	// 添加简单的限流测试接口
+	adminAPI.Get("/rate-limit-test", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"message": "限流测试成功",
+			"timestamp": time.Now().Unix(),
+		})
+	})
 
 	// API v1 路由组
 	v1 := app.Group("/v1")

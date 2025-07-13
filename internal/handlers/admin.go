@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/heyanxiao/llm-bridge/internal/middleware"
 	"github.com/heyanxiao/llm-bridge/internal/providers"
 	"github.com/heyanxiao/llm-bridge/internal/stats"
 	"github.com/heyanxiao/llm-bridge/pkg/types"
@@ -17,6 +18,7 @@ type AdminHandler struct {
 	providerFactory *providers.ProviderFactory
 	loadBalancer    providers.LoadBalancer
 	startTime       time.Time
+	rateLimiter     *middleware.RateLimiter
 }
 
 // NewAdminHandler 创建管理面板处理器实例
@@ -26,6 +28,11 @@ func NewAdminHandler(factory *providers.ProviderFactory, balancer providers.Load
 		loadBalancer:    balancer,
 		startTime:       time.Now(),
 	}
+}
+
+// SetRateLimiter 设置限流器
+func (h *AdminHandler) SetRateLimiter(rl *middleware.RateLimiter) {
+	h.rateLimiter = rl
 }
 
 // Dashboard 返回监控面板首页
@@ -257,6 +264,7 @@ func (h *AdminHandler) GetSystemStats(c *fiber.Ctx) error {
 			"total":   len(h.providerFactory.ListProviders()),
 			"healthy": h.getHealthyProvidersCount(),
 		},
+		"rate_limit": h.getRateLimitStats(c), // 添加限流统计
 		"timestamp": time.Now().Unix(),
 	}
 
@@ -387,4 +395,16 @@ func formatDuration(d time.Duration) string {
 	} else {
 		return fmt.Sprintf("%d分钟", minutes)
 	}
+}
+
+// getRateLimitStats 获取限流统计信息
+func (h *AdminHandler) getRateLimitStats(c *fiber.Ctx) fiber.Map {
+	if h.rateLimiter == nil {
+		return fiber.Map{
+			"enabled": false,
+		}
+	}
+	
+	ctx := context.Background()
+	return h.rateLimiter.GetStats(ctx)
 }
