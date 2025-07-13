@@ -136,8 +136,13 @@ func setupRoutes(app *fiber.App, factory *providers.ProviderFactory, balancer pr
 	health.Get("/ready", healthHandler.Ready)
 	health.Get("/live", healthHandler.Live)
 
-	// 根路径
+	// 根路径 - 重定向到管理面板
 	app.Get("/", func(c *fiber.Ctx) error {
+		return c.Redirect("/admin/", fiber.StatusMovedPermanently)
+	})
+
+	// API信息接口
+	app.Get("/api/info", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"name":        "LLM网关服务",
 			"version":     "1.0.0",

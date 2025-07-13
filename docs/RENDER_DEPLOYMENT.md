@@ -66,9 +66,10 @@ GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 
 部署完成后，你可以通过以下方式访问：
 
-- **监控面板**: `https://your-app-name.onrender.com/admin/`
+- **监控面板**: `https://your-app-name.onrender.com/` (自动跳转到管理面板)
 - **API端点**: `https://your-app-name.onrender.com/v1/chat/completions`
 - **健康检查**: `https://your-app-name.onrender.com/health`
+- **API信息**: `https://your-app-name.onrender.com/api/info`
 
 ## 📊 免费额度说明
 

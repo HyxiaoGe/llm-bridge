@@ -45,7 +45,7 @@ cp .env.example .env
 docker-compose up -d
 
 # 4. 访问服务
-# 监控面板: http://localhost:8080/admin/
+# 监控面板: http://localhost:8080/ (自动跳转到管理面板)
 # API端点: http://localhost:8080/v1/chat/completions
 ```
 
@@ -95,7 +95,7 @@ curl https://your-app.onrender.com/health
 
 ## 📊 监控面板
 
-访问 `/admin/` 查看：
+访问服务根目录自动跳转到管理面板，查看：
 - 🔋 **提供商状态**: 实时健康状态和响应时间
 - 📈 **请求统计**: 总请求数、成功率、平均响应时间  
 - 💰 **成本分析**: Token消耗统计和费用估算
