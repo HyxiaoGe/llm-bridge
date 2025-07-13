@@ -60,6 +60,8 @@ GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 2. 等待构建完成（约3-5分钟）
 3. 获得你的部署URL: `https://your-app-name.onrender.com`
 
+**注意**: Render会自动配置Redis连接，无需手动设置Redis相关环境变量。
+
 ## 🌐 访问你的服务
 
 部署完成后，你可以通过以下方式访问：

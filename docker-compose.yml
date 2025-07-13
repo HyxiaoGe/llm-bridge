@@ -12,9 +12,10 @@ services:
       - PORT=8080
       - HOST=0.0.0.0
       
-      # Redis配置
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      # Redis配置（兼容云平台和本地部署）
+      - REDIS_URL=${REDIS_URL:-}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       
       # LLM提供商API密钥 - 从.env文件读取

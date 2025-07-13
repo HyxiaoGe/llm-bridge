@@ -19,23 +19,35 @@ var globalMetrics *RedisMetrics
 
 // InitRedisMetrics 初始化Redis统计服务
 func InitRedisMetrics() error {
-	host := os.Getenv("REDIS_HOST")
-	if host == "" {
-		host = "localhost"
+	var rdb *redis.Client
+	
+	// 优先使用REDIS_URL（Render等云平台）
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		opt, err := redis.ParseURL(redisURL)
+		if err != nil {
+			return fmt.Errorf("解析Redis URL失败: %w", err)
+		}
+		rdb = redis.NewClient(opt)
+	} else {
+		// 后备方案：使用单独的host/port/password配置
+		host := os.Getenv("REDIS_HOST")
+		if host == "" {
+			host = "localhost"
+		}
+		
+		port := os.Getenv("REDIS_PORT")
+		if port == "" {
+			port = "6379"
+		}
+		
+		password := os.Getenv("REDIS_PASSWORD")
+		
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%s:%s", host, port),
+			Password: password,
+			DB:       0, // 使用默认数据库
+		})
 	}
-	
-	port := os.Getenv("REDIS_PORT")
-	if port == "" {
-		port = "6379"
-	}
-	
-	password := os.Getenv("REDIS_PASSWORD")
-	
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", host, port),
-		Password: password,
-		DB:       0, // 使用默认数据库
-	})
 	
 	// 测试连接
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

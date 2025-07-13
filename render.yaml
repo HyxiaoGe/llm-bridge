@@ -16,21 +16,11 @@ services:
         value: 0.0.0.0
         
       # Redis配置（使用Render内置Redis）
-      - key: REDIS_HOST
+      - key: REDIS_URL
         fromService:
           type: redis
           name: llm-bridge-redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: redis
-          name: llm-bridge-redis
-          property: port
-      - key: REDIS_PASSWORD
-        fromService:
-          type: redis
-          name: llm-bridge-redis
-          property: password
+          property: connectionString
           
       # 限流配置
       - key: RATE_LIMIT_ENABLED
