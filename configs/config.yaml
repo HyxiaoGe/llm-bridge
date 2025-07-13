@@ -55,6 +55,38 @@ providers:
     timeout: 30
     retries: 3
 
+  # DeepSeek配置
+  deepseek:
+    api_key: "${DEEPSEEK_API_KEY}"
+    base_url: "${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}"
+    timeout: 30
+    retries: 3
+    models:
+      - "deepseek-chat"
+      - "deepseek-coder"
+
+  # 通义千问配置
+  qwen:
+    api_key: "${DASHSCOPE_API_KEY}"
+    base_url: "${QWEN_BASE_URL:-https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation}"
+    timeout: 30
+    retries: 3
+    models:
+      - "qwen-turbo"
+      - "qwen-plus"
+      - "qwen-max"
+
+  # 月之暗面配置
+  moonshot:
+    api_key: "${MOONSHOT_API_KEY}"
+    base_url: "${MOONSHOT_BASE_URL:-https://api.moonshot.cn/v1}"
+    timeout: 60
+    retries: 3
+    models:
+      - "moonshot-v1-8k"
+      - "moonshot-v1-32k"
+      - "moonshot-v1-128k"
+
 # Redis配置（用于限流和缓存）
 redis:
   host: "${REDIS_HOST:-localhost}"

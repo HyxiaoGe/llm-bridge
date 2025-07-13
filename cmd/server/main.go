@@ -117,7 +117,61 @@ func registerProviders(factory *providers.ProviderFactory) {
 		log.Println("已注册OpenAI提供商")
 	}
 
-	// TODO: 注册其他提供商(Claude, Gemini等)
+	// 注册Gemini提供商
+	if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
+		geminiConfig := &providers.GeminiConfig{
+			APIKey:   apiKey,
+			BaseURL:  os.Getenv("GEMINI_BASE_URL"),
+			Project:  os.Getenv("GEMINI_PROJECT"),
+			Location: os.Getenv("GEMINI_LOCATION"),
+			Timeout:  30,
+			Retries:  3,
+		}
+		geminiProvider := providers.NewGeminiProvider(geminiConfig)
+		factory.RegisterProvider("gemini", geminiProvider)
+		log.Println("已注册Gemini提供商")
+	}
+
+	// 注册DeepSeek提供商
+	if apiKey := os.Getenv("DEEPSEEK_API_KEY"); apiKey != "" {
+		deepseekConfig := &providers.DeepSeekConfig{
+			APIKey:  apiKey,
+			BaseURL: os.Getenv("DEEPSEEK_BASE_URL"),
+			Timeout: 30,
+			Retries: 3,
+		}
+		deepseekProvider := providers.NewDeepSeekProvider(deepseekConfig)
+		factory.RegisterProvider("deepseek", deepseekProvider)
+		log.Println("已注册DeepSeek提供商")
+	}
+
+	// 注册通义千问提供商
+	if apiKey := os.Getenv("DASHSCOPE_API_KEY"); apiKey != "" {
+		qwenConfig := &providers.QwenConfig{
+			APIKey:  apiKey,
+			BaseURL: os.Getenv("QWEN_BASE_URL"),
+			Timeout: 30,
+			Retries: 3,
+		}
+		qwenProvider := providers.NewQwenProvider(qwenConfig)
+		factory.RegisterProvider("qwen", qwenProvider)
+		log.Println("已注册通义千问提供商")
+	}
+
+	// 注册月之暗面提供商
+	if apiKey := os.Getenv("MOONSHOT_API_KEY"); apiKey != "" {
+		moonshotConfig := &providers.MoonshotConfig{
+			APIKey:  apiKey,
+			BaseURL: os.Getenv("MOONSHOT_BASE_URL"),
+			Timeout: 60,
+			Retries: 3,
+		}
+		moonshotProvider := providers.NewMoonshotProvider(moonshotConfig)
+		factory.RegisterProvider("moonshot", moonshotProvider)
+		log.Println("已注册月之暗面提供商")
+	}
+
+	// TODO: 注册其他提供商(Claude, Azure等)
 	// 这里可以根据环境变量或配置文件动态注册
 }
 

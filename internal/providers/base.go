@@ -41,10 +41,13 @@ type BaseProvider struct {
 
 // ProviderConfig 提供商配置结构
 type ProviderConfig struct {
-	OpenAI *OpenAIConfig `yaml:"openai"`
-	Claude *ClaudeConfig `yaml:"claude"`
-	Gemini *GeminiConfig `yaml:"gemini"`
-	Azure  *AzureConfig  `yaml:"azure"`
+	OpenAI   *OpenAIConfig   `yaml:"openai"`
+	Claude   *ClaudeConfig   `yaml:"claude"`
+	Gemini   *GeminiConfig   `yaml:"gemini"`
+	Azure    *AzureConfig    `yaml:"azure"`
+	DeepSeek *DeepSeekConfig `yaml:"deepseek"`
+	Qwen     *QwenConfig     `yaml:"qwen"`
+	Moonshot *MoonshotConfig `yaml:"moonshot"`
 }
 
 // OpenAI配置
