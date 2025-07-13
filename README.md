@@ -75,36 +75,59 @@ curl -X POST https://your-app.onrender.com/v1/chat/completions \
 
 ### 负载均衡使用示例
 
-系统支持自动负载均衡，当不指定`provider`参数时，会自动在多个提供商间轮询选择：
+系统支持四种调用方式，具备智能负载均衡和默认模型选择功能：
 
 ```bash
-# 自动负载均衡 - 系统自动选择最优提供商
+# 情况1: 负载均衡模式 - 不指定provider和model
 curl -X POST https://your-app.onrender.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-3.5-turbo",
     "messages": [
-      {"role": "user", "content": "测试负载均衡功能"}
+      {"role": "user", "content": "Hello!"}
+    ]
+  }'
+# 系统自动轮询: OpenAI(gpt-3.5-turbo) → Gemini(gemini-2.5-flash) → DeepSeek(deepseek-chat) → 通义千问(qwen-plus) → 月之暗面(moonshot-v1-8k)
+
+# 情况2: 指定提供商，使用默认模型
+curl -X POST https://your-app.onrender.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "openai",
+    "messages": [
+      {"role": "user", "content": "使用OpenAI的默认模型(gpt-3.5-turbo)"}
     ]
   }'
 
-# 指定提供商 - 强制使用特定提供商
+# 情况3: 完全指定提供商和模型
+curl -X POST https://your-app.onrender.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-2024-08-06",
+    "provider": "openai",
+    "messages": [
+      {"role": "user", "content": "使用指定的GPT-4模型"}
+    ]
+  }'
+
+# 情况4: 错误示例 - 只指定model不指定provider (会返回错误)
 curl -X POST https://your-app.onrender.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-3.5-turbo",
-    "provider": "openai",
     "messages": [
-      {"role": "user", "content": "使用指定的OpenAI提供商"}
+      {"role": "user", "content": "这会返回错误：需要指定provider"}
     ]
   }'
+# 返回错误: "指定模型时必须同时指定提供商(provider)参数"
 ```
 
 **负载均衡特性**:
 - 🔄 轮询算法: 自动在健康提供商间轮询
 - 🛡️ 故障转移: 自动跳过不健康的提供商
-- 📊 健康检查: 实时监控提供商状态
-- ⚡ 高可用: 单点故障不影响整体服务
+- 🎯 智能选择: 自动使用提供商的默认模型
+- 📊 健康监控: 实时检测提供商API状态
+- ⚡ 高可用性: 单点故障不影响整体服务
+- 🚫 参数校验: 防止无效的模型/提供商组合
 
 ### 支持的模型
 

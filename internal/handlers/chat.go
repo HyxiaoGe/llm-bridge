@@ -47,10 +47,22 @@ func (h *ChatHandler) ChatCompletion(c *fiber.Ctx) error {
 	req.Metadata.UserAgent = c.Get("User-Agent")
 	req.Metadata.Timestamp = time.Now()
 
-	// 如果未指定提供商，使用负载均衡选择
+	// 处理提供商和模型的四种情况
 	var provider providers.ProviderAdapter
+	
+	// 情况4：只指定了model但没有provider - 返回错误
+	if req.Model != "" && req.Provider == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fiber.Map{
+				"code":    "missing_provider",
+				"message": "指定模型时必须同时指定提供商(provider)参数",
+				"type":    "invalid_request_error",
+			},
+		})
+	}
+	
 	if req.Provider != "" {
-		// 使用指定的提供商
+		// 情况2&3：指定了提供商
 		var exists bool
 		provider, exists = h.providerFactory.GetProvider(req.Provider)
 		if !exists {
@@ -62,8 +74,24 @@ func (h *ChatHandler) ChatCompletion(c *fiber.Ctx) error {
 				},
 			})
 		}
+		
+		// 情况2：有provider但没有model - 使用默认模型
+		if req.Model == "" {
+			defaultModel := providers.GetDefaultModel(req.Provider)
+			if defaultModel == "" {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": fiber.Map{
+						"code":    "no_default_model",
+						"message": "提供商 " + req.Provider + " 没有配置默认模型",
+						"type":    "internal_server_error",
+					},
+				})
+			}
+			req.Model = defaultModel
+		}
+		// 情况3：有provider和model - 正常处理（无需额外操作）
 	} else {
-		// 使用负载均衡选择提供商
+		// 情况1：没有provider和model - 负载均衡选择
 		allProviders := h.getAllProviders()
 		provider = h.loadBalancer.SelectProvider(allProviders)
 		if provider == nil {
@@ -76,6 +104,19 @@ func (h *ChatHandler) ChatCompletion(c *fiber.Ctx) error {
 			})
 		}
 		req.Provider = provider.GetProviderName()
+		
+		// 使用负载均衡选中提供商的默认模型
+		defaultModel := providers.GetDefaultModel(req.Provider)
+		if defaultModel == "" {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": fiber.Map{
+					"code":    "no_default_model",
+					"message": "提供商 " + req.Provider + " 没有配置默认模型",
+					"type":    "internal_server_error",
+				},
+			})
+		}
+		req.Model = defaultModel
 	}
 
 	// 验证请求参数
