@@ -51,12 +51,11 @@ func (rl *RateLimiter) loadConfig() {
 	rl.chatLimit5m = getEnvAsInt("RATE_LIMIT_CHAT_5M", 120)
 	rl.testLimit1m = getEnvAsInt("RATE_LIMIT_TEST_1M", 10)
 	
-	// 打印配置信息
-	fmt.Printf("[RateLimit] 配置加载完成:\n")
-	fmt.Printf("  - 启用状态: %v\n", rl.enabled)
-	fmt.Printf("  - 全局限流: %d/1m, %d/5m, %d/1h\n", rl.window1m, rl.window5m, rl.window1h)
-	fmt.Printf("  - 聊天接口: %d/1m, %d/5m\n", rl.chatLimit1m, rl.chatLimit5m)
-	fmt.Printf("  - 测试接口: %d/1m\n", rl.testLimit1m)
+	// 启动日志
+	if rl.enabled {
+		fmt.Printf("[RateLimit] 限流功能已启用 - 全局:%d/1m %d/5m, 聊天:%d/1m, 测试:%d/1m\n", 
+			rl.window1m, rl.window5m, rl.chatLimit1m, rl.testLimit1m)
+	}
 }
 
 func getEnvAsInt(key string, defaultVal int) int {
@@ -73,15 +72,11 @@ func (rl *RateLimiter) Middleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// 如果未启用限流，直接放行
 		if !rl.enabled || rl.client == nil {
-			fmt.Printf("[RateLimit] 限流未启用或Redis未连接 (enabled=%v, client=%v)\n", rl.enabled, rl.client != nil)
 			return c.Next()
 		}
 		
 		path := c.Path()
 		ctx := context.Background()
-		
-		// 记录请求
-		fmt.Printf("[RateLimit] 检查路径: %s\n", path)
 		
 		// 检查限流
 		allowed, err := rl.checkRateLimit(ctx, path)
@@ -92,7 +87,6 @@ func (rl *RateLimiter) Middleware() fiber.Handler {
 		}
 		
 		if !allowed {
-			fmt.Printf("[RateLimit] 限流触发! 路径: %s\n", path)
 			// 返回429状态码
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"error": "Rate limit exceeded",
@@ -168,7 +162,6 @@ func (rl *RateLimiter) incrementAndCheck(ctx context.Context, key string, limit 
 	}
 	
 	count := int(incr.Val())
-	fmt.Printf("[RateLimit] Key: %s, Count: %d/%d\n", key, count, limit)
 	return count, nil
 }
 
