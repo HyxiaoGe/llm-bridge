@@ -1,11 +1,13 @@
 package providers
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/heyanxiao/llm-bridge/pkg/types"
@@ -111,6 +113,15 @@ func (p *OpenAIProvider) Transform(req *types.UnifiedRequest) ([]byte, error) {
 	
 	if len(req.Parameters.Stop) > 0 {
 		openaiReq["stop"] = req.Parameters.Stop
+	}
+	
+	// 添加推理相关参数 (适用于o1等推理模型)
+	if req.Parameters.Reasoning {
+		openaiReq["reasoning"] = true
+	}
+	
+	if req.Parameters.ReasoningEffort != "" {
+		openaiReq["reasoning_effort"] = req.Parameters.ReasoningEffort
 	}
 	
 	// 添加用户ID（如果存在）
@@ -221,17 +232,101 @@ func (p *OpenAIProvider) ParseResponse(resp *http.Response) (*types.UnifiedRespo
 
 // ParseStreamResponse 解析OpenAI流式响应
 func (p *OpenAIProvider) ParseStreamResponse(resp *http.Response) (<-chan *types.StreamResponse, error) {
-	// 流式响应的实现会比较复杂，这里先提供基础框架
 	responseChan := make(chan *types.StreamResponse)
 	
 	go func() {
 		defer close(responseChan)
 		defer resp.Body.Close()
 		
-		// TODO: 实现SSE(Server-Sent Events)解析逻辑
-		// 这里需要逐行读取响应，解析每个data:行的JSON
-		// 并转换为StreamResponse格式发送到channel
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			
+			// 跳过空行
+			if line == "" {
+				continue
+			}
+			
+			// 检查是否是SSE数据行
+			if strings.HasPrefix(line, "data: ") {
+				data := strings.TrimPrefix(line, "data: ")
+				
+				// 检查是否是结束标志
+				if data == "[DONE]" {
+					break
+				}
+				
+				// 解析JSON数据
+				var openaiStreamResp map[string]interface{}
+				if err := json.Unmarshal([]byte(data), &openaiStreamResp); err != nil {
+					continue // 跳过无效的JSON
+				}
+				
+				// 转换为统一格式
+				streamResp := p.convertOpenAIStreamResponse(openaiStreamResp)
+				if streamResp != nil {
+					responseChan <- streamResp
+				}
+			}
+		}
 	}()
 	
 	return responseChan, nil
+}
+
+// convertOpenAIStreamResponse 转换OpenAI流式响应为统一格式
+func (p *OpenAIProvider) convertOpenAIStreamResponse(data map[string]interface{}) *types.StreamResponse {
+	streamResp := &types.StreamResponse{
+		Object:  "chat.completion.chunk",
+		Model:   p.Name,
+		Created: time.Now().Unix(),
+	}
+	
+	// 提取ID
+	if id, ok := data["id"].(string); ok {
+		streamResp.ID = id
+	}
+	
+	// 提取模型
+	if model, ok := data["model"].(string); ok {
+		streamResp.Model = model
+	}
+	
+	// 提取选择
+	if choices, ok := data["choices"].([]interface{}); ok && len(choices) > 0 {
+		choice := choices[0].(map[string]interface{})
+		
+		streamChoice := types.StreamChoice{
+			Index: 0,
+		}
+		
+		// 提取增量内容
+		if delta, ok := choice["delta"].(map[string]interface{}); ok {
+			streamDelta := types.StreamDelta{}
+			
+			if role, ok := delta["role"].(string); ok {
+				streamDelta.Role = role
+			}
+			
+			if content, ok := delta["content"].(string); ok {
+				streamDelta.Content = content
+			}
+			
+			// 检查是否有推理内容 (适用于o1等模型)
+			if reasoning, ok := delta["reasoning"].(string); ok {
+				streamDelta.Reasoning = reasoning
+			}
+			
+			streamChoice.Delta = streamDelta
+		}
+		
+		// 提取完成原因
+		if finishReason, ok := choice["finish_reason"].(string); ok {
+			streamChoice.FinishReason = finishReason
+		}
+		
+		streamResp.Choices = []types.StreamChoice{streamChoice}
+	}
+	
+	return streamResp
 }

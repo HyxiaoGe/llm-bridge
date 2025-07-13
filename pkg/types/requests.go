@@ -26,6 +26,8 @@ type Parameters struct {
 	FrequencyPenalty float64 `json:"frequency_penalty,omitempty"` // 频率惩罚
 	PresencePenalty  float64 `json:"presence_penalty,omitempty"`  // 存在惩罚
 	Stop             []string `json:"stop,omitempty"`             // 停止序列
+	Reasoning        bool    `json:"reasoning,omitempty"`         // 是否输出推理过程 (适用于o1、deepseek-reasoner等模型)
+	ReasoningEffort  string  `json:"reasoning_effort,omitempty"`  // 推理强度: low, medium, high (适用于部分模型)
 }
 
 // 请求元数据
@@ -88,6 +90,7 @@ type StreamChoice struct {
 
 // 流式增量内容
 type StreamDelta struct {
-	Role    string `json:"role,omitempty"`    // 角色
-	Content string `json:"content,omitempty"` // 内容片段
+	Role      string `json:"role,omitempty"`      // 角色
+	Content   string `json:"content,omitempty"`   // 内容片段
+	Reasoning string `json:"reasoning,omitempty"` // 推理过程片段 (适用于推理模型)
 }

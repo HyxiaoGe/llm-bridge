@@ -9,6 +9,8 @@
 - ⚡ **智能负载均衡**: 轮询调度和故障转移
 - 🛡️ **限流保护**: 多层限流机制，防止恶意请求
 - 📊 **实时监控**: Web管理面板，统计分析和性能指标
+- 🌊 **流式响应**: 支持SSE流式输出，实时获取生成内容
+- 🧠 **推理过程**: 支持思考过程输出（适用于推理模型）
 - 🐳 **容器化部署**: Docker + 一键云部署
 - 🌍 **全球访问**: 支持全球部署，无地域限制
 
@@ -63,6 +65,7 @@ make run     # 运行
 ### 聊天完成接口
 
 ```bash
+# 基础对话
 curl -X POST https://your-app.onrender.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
@@ -70,6 +73,31 @@ curl -X POST https://your-app.onrender.com/v1/chat/completions \
     "messages": [
       {"role": "user", "content": "Hello!"}
     ]
+  }'
+
+# 流式响应
+curl -X POST https://your-app.onrender.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "provider": "openai",
+    "messages": [
+      {"role": "user", "content": "讲一个故事"}
+    ],
+    "stream": true
+  }'
+
+# 推理模型支持（思考过程输出）
+curl -X POST https://your-app.onrender.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-reasoner",
+    "provider": "deepseek",
+    "messages": [
+      {"role": "user", "content": "解决这个数学问题：2x + 3 = 7"}
+    ],
+    "reasoning": true,
+    "stream": true
   }'
 ```
 
@@ -129,15 +157,29 @@ curl -X POST https://your-app.onrender.com/v1/chat/completions \
 - ⚡ 高可用性: 单点故障不影响整体服务
 - 🚫 参数校验: 防止无效的模型/提供商组合
 
+### 请求参数说明
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `messages` | array | ✅ | 对话消息列表 |
+| `model` | string | - | 模型名称（可选，配合provider使用） |
+| `provider` | string | - | 提供商名称（可选，支持负载均衡） |
+| `stream` | boolean | - | 是否启用流式响应 |
+| `reasoning` | boolean | - | 是否输出思考过程（适用于推理模型） |
+| `reasoning_effort` | string | - | 推理强度：low/medium/high |
+| `temperature` | float | - | 温度参数 (0.0-2.0) |
+| `max_tokens` | integer | - | 最大输出token数 |
+| `top_p` | float | - | 核采样参数 (0.0-1.0) |
+
 ### 支持的模型
 
-| 提供商 | 模型列表 |
-|--------|---------|
-| **OpenAI** | gpt-3.5-turbo, gpt-4o-2024-08-06, gpt-4.1-2025-04-14 |
-| **Gemini** | gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash |
-| **DeepSeek** | deepseek-reasoner, deepseek-chat |
-| **通义千问** | qwen-max, qwen-plus, qwq-plus |
-| **月之暗面** | moonshot-v1-8k, moonshot-v1-32k, kimi-k2-0711-preview |
+| 提供商 | 模型列表 | 特殊功能 |
+|--------|---------|----------|
+| **OpenAI** | gpt-3.5-turbo, gpt-4o-2024-08-06, gpt-4.1-2025-04-14 | 流式响应, o1推理模型 |
+| **Gemini** | gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash | 流式响应 |
+| **DeepSeek** | deepseek-reasoner, deepseek-chat | 流式响应, 推理过程输出 |
+| **通义千问** | qwen-max, qwen-plus, qwq-plus | 流式响应 |
+| **月之暗面** | moonshot-v1-8k, moonshot-v1-32k, kimi-k2-0711-preview | 流式响应 |
 
 ### 其他接口
 

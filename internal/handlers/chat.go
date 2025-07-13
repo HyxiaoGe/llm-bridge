@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -200,9 +202,39 @@ func (h *ChatHandler) handleStreamResponse(c *fiber.Ctx, provider providers.Prov
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
+	c.Set("Access-Control-Allow-Origin", "*")
+	c.Set("Access-Control-Allow-Headers", "Cache-Control")
 
-	// TODO: 实现流式响应处理
-	// 这需要使用provider.ParseStreamResponse并逐个发送SSE事件
+	// 获取流式响应channel
+	streamChan, err := provider.ParseStreamResponse(resp)
+	if err != nil {
+		// 发送错误事件
+		errorEvent := fmt.Sprintf("data: {\"error\":{\"code\":\"stream_parse_error\",\"message\":\"流式响应解析失败: %s\"}}\n\n", err.Error())
+		return c.SendString(errorEvent)
+	}
+
+	// 逐个发送流式事件
+	for streamResp := range streamChan {
+		// 将StreamResponse转换为JSON
+		jsonData, err := json.Marshal(streamResp)
+		if err != nil {
+			continue // 跳过无法序列化的响应
+		}
+		
+		// 发送SSE事件
+		event := fmt.Sprintf("data: %s\n\n", string(jsonData))
+		if err := c.SendString(event); err != nil {
+			// 客户端断开连接
+			break
+		}
+		
+		// 检查是否完成
+		if len(streamResp.Choices) > 0 && streamResp.Choices[0].FinishReason != "" {
+			break
+		}
+	}
+
+	// 发送完成事件
 	return c.SendString("data: [DONE]\n\n")
 }
 
