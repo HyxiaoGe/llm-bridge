@@ -1,0 +1,32 @@
+# Docker ignore file
+# 确保不忽略关键的构建文件
+
+# 临时文件
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# 开发工具
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 版本控制
+.git/
+.gitignore
+
+# 文档（构建时不需要）
+docs/
+*.md
+!README.md
+
+# 配置模板
+configs/
+
+# 但是保留关键构建文件
+!go.mod
+!go.sum
+!Dockerfile
+!docker-compose.yml

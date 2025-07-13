@@ -10,7 +10,7 @@ gateway
 go.work
 
 # Go模块缓存
-go.sum
+# 注意：go.sum应该被包含在版本控制中
 
 # 依赖目录
 vendor/
@@ -59,7 +59,7 @@ configs/config.local.yaml
 configs/*.secret.yaml
 
 # Docker相关
-.dockerignore
+# .dockerignore 应该被包含在版本控制中
 
 # Go下载的安装包
 go*.tar.gz
